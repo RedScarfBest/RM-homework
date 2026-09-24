@@ -21,6 +21,13 @@ Car::Car()
 Car::~Car()
 {
     std::cout << "Car 析构完成" << std::endl;
+    //
+    std::cout << "car destructor! It has been read " << count_ << " times" << std::endl;
+}
+
+void Car::run(){
+    count_++;
+    std::cout << "car 使用次数："<<count_ << std::endl;
 }
 
 int main()
@@ -32,8 +39,4 @@ int main()
 
 
     return 0;
-}
-void Car::run(){
-    count_++;
-    std::cout << "car 使用次数："<<count_ << std::endl;
 }
