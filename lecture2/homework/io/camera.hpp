@@ -2,7 +2,6 @@
 #include "hikrobot/include/MvCameraControl.h"
 #include <opencv2/opencv.hpp>
 #include <iostream>
-#include <unordered_map>
 
 class Camera {
     public:
@@ -20,6 +19,6 @@ class Camera {
     void* handle_;
     bool is_grabbing_;
 
-    void setDefaultParams_();
+    bool setDefaultParams_();
     cv::Mat convertFrame_(MV_FRAME_OUT& raw);
 };
