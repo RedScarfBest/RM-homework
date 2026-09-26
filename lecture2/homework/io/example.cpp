@@ -35,20 +35,24 @@ int main()
     MV_CC_DEVICE_INFO_LIST device_list;
     ret = MV_CC_EnumDevices(MV_USB_DEVICE, &device_list);
     if (ret != MV_OK) {
+      throw std::runtime_error("相机枚举失败，错误码: " + std::to_string(ret));
       return -1;
     }
   
     if (device_list.nDeviceNum == 0) {
+      throw std::runtime_error("未找到可用相机");
       return -1;
     }
   
     ret = MV_CC_CreateHandle(&handle, device_list.pDeviceInfo[0]);
     if (ret != MV_OK) {
+      throw std::runtime_error("创建相机句柄失败，错误码: " + std::to_string(ret));
       return -1;
     }
   
     ret = MV_CC_OpenDevice(handle);
     if (ret != MV_OK) {
+      throw std::runtime_error("打开相机失败，错误码: " + std::to_string(ret));
       return -1;
     }
   
@@ -62,6 +66,7 @@ int main()
     // 读取一帧图像
     ret = MV_CC_StartGrabbing(handle);
     if (ret != MV_OK) {
+      throw std::runtime_error("开始抓取图像失败，错误码: " + std::to_string(ret));
       return -1;
     }
   
@@ -70,6 +75,7 @@ int main()
 
     ret = MV_CC_GetImageBuffer(handle, &raw, nMsec);
     if (ret != MV_OK) {
+      throw std::runtime_error("获取图像缓冲区失败，错误码: " + std::to_string(ret));
       return -1;
     }
 
@@ -79,23 +85,27 @@ int main()
 
     ret = MV_CC_FreeImageBuffer(handle, &raw);
     if (ret != MV_OK) {
+      throw std::runtime_error("释放图像缓冲区失败，错误码: " + std::to_string(ret));
       return -1;
     }
     
     // 关闭相机
     ret = MV_CC_StopGrabbing(handle);
     if (ret != MV_OK) {
-        return -1;
+      throw std::runtime_error("停止抓取图像失败，错误码: " + std::to_string(ret));
+      return -1;
     }
 
     ret = MV_CC_CloseDevice(handle);
     if (ret != MV_OK) {
-        return -1;
+      throw std::runtime_error("关闭相机失败，错误码: " + std::to_string(ret));
+      return -1;
     }
 
     ret = MV_CC_DestroyHandle(handle);
     if (ret != MV_OK) {
-        return -1;
+      throw std::runtime_error("销毁相机句柄失败，错误码: " + std::to_string(ret));
+      return -1;
     }
 
 }

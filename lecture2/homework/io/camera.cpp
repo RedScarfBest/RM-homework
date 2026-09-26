@@ -5,7 +5,6 @@
 
 Camera::Camera() : handle_(nullptr), is_grabbing_(false)
 {
-  // 打开相机
   MV_CC_DEVICE_INFO_LIST device_list = {0};
   int ret = MV_CC_EnumDevices(MV_USB_DEVICE, &device_list);
   if (ret != MV_OK) {
@@ -98,11 +97,11 @@ cv::Mat Camera::convertFrame_(MV_FRAME_OUT & raw)
   cv::Mat out_img;
   auto pixel_type = raw.stFrameInfo.enPixelType;
 
-  const static std::unordered_map<MvGvspPixelType, cv::ColorConversionCodes> type_map = {
-    {PixelType_Gvsp_BayerGR8, cv::COLOR_BayerGR2BGR},
-    {PixelType_Gvsp_BayerRG8, cv::COLOR_BayerRG2BGR},
-    {PixelType_Gvsp_BayerGB8, cv::COLOR_BayerGB2BGR},
-    {PixelType_Gvsp_BayerBG8, cv::COLOR_BayerBG2BGR}};
+    const static std::unordered_map<MvGvspPixelType, cv::ColorConversionCodes> type_map = {
+    {PixelType_Gvsp_BayerGR8, cv::COLOR_BayerGR2RGB},
+    {PixelType_Gvsp_BayerRG8, cv::COLOR_BayerRG2RGB},
+    {PixelType_Gvsp_BayerGB8, cv::COLOR_BayerGB2RGB},
+    {PixelType_Gvsp_BayerBG8, cv::COLOR_BayerBG2RGB}};
 
   auto it = type_map.find(pixel_type);
   if (it != type_map.end()) {

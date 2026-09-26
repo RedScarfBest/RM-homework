@@ -1,5 +1,6 @@
 #include <iostream>
 #include <list>
+#include <string>
 
 #include "io/camera.hpp"
 #include "opencv2/opencv.hpp"
@@ -11,8 +12,8 @@ int main()
   // 初始化相机、yolo类
   try {
     std::cout << "开始初始化相机..." << std::endl;
-    Camera cam;                                  // 如果失败，cam的构造函数会抛出异常，跳到 catch
-    auto_aim::YOLO yolo("./configs/yolo.yaml");  // 加载 assets/yolov5.xml，失败会抛异常
+    Camera cam;
+    auto_aim::YOLO yolo("./configs/yolo.yaml");
 
     cv::Mat img;
     int frame_count = 0;
@@ -27,8 +28,23 @@ int main()
       std::list<auto_aim::Armor> armors = yolo.detect(img, frame_count++);
 
       for (const auto & armor : armors) {
-        // 绘制装甲板边界框
+        // 四个关键点连成绿色闭合矩形
         tools::draw_points(img, armor.points, cv::Scalar(0, 255, 0), 2);
+
+        // 颜色 编号
+        const std::string label =
+          auto_aim::COLORS[armor.color] + auto_aim::ARMOR_NAMES[armor.name];
+
+         auto a = armor.points[0], b = armor.points[0];
+        for (const auto & p : armor.points) {
+          if (p.y < a.y) { b = a; a = p; } else if (p.y < b.y) { b = p; }
+        }
+        cv::Point2f top_point = (a.x < b.x) ? a : b;
+        
+        // 在装甲板上方显示颜色和编号
+        tools::draw_text(
+          img, label, {static_cast<int>(top_point.x), static_cast<int>(top_point.y) - 8},
+          cv::Scalar(0, 0, 255), 2.0, 3);
       }
 
       // 显示图像
