@@ -11,8 +11,13 @@ std::mutex mutex;
 
 void work()
 {
+  std::lock_guard<std::mutex> lock(mutex);  // RAII 风格的锁管理
   for (int i = 0; i < N; ++i) {
+
+    //mutex.lock();
+    
     counter++;
+    //mutex.unlock();
   }
 }
 

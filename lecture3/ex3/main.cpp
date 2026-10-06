@@ -5,14 +5,16 @@ cv::Mat addNoiseColor(const cv::Mat & src)
 {
   CV_Assert(src.type() == CV_8UC3);  // 输入必须是 8-bit unsigned, 3 channels
 
+  //src 3 channels, 8-bit unsigned
   cv::Mat dst = src;
+  //
 
   // 创建随机噪声
-  cv::Mat noise(src.rows, src.cols, CV_8UC1);
+  cv::Mat noise(src.rows, src.cols, CV_8UC3);//noise 1 channel--> 3 channels
   cv::randu(noise, 0, 50);
 
   // 给图像加入噪声
-  cv::add(dst, noise, dst);
+  cv::add(dst, noise, dst);//
 
   return dst;
 }

@@ -20,7 +20,7 @@
 为什么你的实现既不会漏掉已经入队的帧，也不会重复处理同一帧？输入耗尽时，正在等待
 以及仍在处理数据的 worker 分别会怎样？
 
-    BlockingQueue::push 在持锁的状态下检查 closed_，未关闭才把元素放进内部 std::queue，离开临界区后再 notify_one()。因为只多了一份任务，叫醒一个 worker 就够了。
+    BlockingQueue::push 在持锁的状态下检查 closed_，未关闭才把元素放进内部 std::queue，离开临界区后再 notify_one()。因为只多了一份任务，一个 worker就够了。
 
     pop在持锁状态下通过 ready_.wait(lock, predicate) 等待，谓词是 closed_ || !queue_.empty()；谓词成立后，如果队列为空就直接返回 false，说明队列已关闭且已被取空，否则执行 value = std::move(queue_.front()); queue_.pop()。取值和出队是在同一把锁的保护下一次性完成的，就不可能出现两个 worker 拿到同一个元素，也不存在元素被取出却没有出队的情况。所以不会重复处理同一帧。
 
@@ -55,12 +55,12 @@
     producer 循环读取图像并 push 入队；输入耗尽后 while 结束，调用 queue_.close()。
     所有 worker 被唤醒，把队列中剩余的帧全部取出、处理、保存，直到 pop 取空返回 false，各自结束 while 循环并从线程函数返回。
     wait() 先 producer_.join()，再按顺序对每个 worker join()。返回时所有线程都已真正结束，统计值已经稳定，main 随后读取统计是安全的。
-    之后 Pipeline 析构，此时所有 std::thread 都已经 join 过（joinable() 为 false），析构不会有任何问题，再调用一次 wait() 也是空操作。
+    之后 Pipeline 析构，此时所有 std::thread 都已经 join 过，析构不会有任何问题，再调用一次 wait() 也是空操作。
 
 2. 调用 start() 之后不调用 wait()，直接让 Pipeline 析构。
     析构函数会调用 wait()，因此它走的是与路径一完全相同的关闭流程。这里的关键在于时序：join 发生在析构函数体内，而成员变量的销毁发生在函数体之后。所以一定是线程先全部结束成员才被销毁，任何线程都不可能访问到已经被销毁的 queue_、statistics_ 或 config_，这样既不会出现悬空访问，也不会出现 std::terminate。
-    基线版本正是反例：析构函数是空的，于是成员按声明逆序销毁时 workers_ 里还躺着 joinable 的线程，std::thread 的析构函数直接调用 std::terminate，进程被 abort，这正是 shutdown_test 崩溃的原因。这条路径下所有帧仍会被处理完毕，也就是说析构的语义是收尾而不是立刻丢弃。
+    基线版本正是反例,析构函数是空的，于是成员按声明逆序销毁时workers_里还joinable的线程，std::thread的析构函数直接调用std::terminate，进程被 abort，这正是 shutdown_test 崩溃的原因。这条路径下所有帧仍会被处理完毕，也就是说析构的语义是收尾而不是立刻丢弃。
 
-关于重复调用：wait() 允许重复调用：线程 join 之后 joinable() 变为 false，再次 wait() 只是跳过所有 join，属于幂等操作；如果从未调用 start()，线程容器为空，wait() 与析构同样是安全的空操作。start() 则只允许调用一次，第二次调用时 producer_ 仍处于 joinable 状态，对 joinable 的 std::thread 赋值会触发 std::terminate，同时 workers_ 还会被追加一批线程。因此我在 start() 开头加了 started_ 检查，第二次调用抛出 std::logic_error，把只能启动一次作为明确的前置条件，而不是留给未定义行为。
+关于重复调用：wait() 允许重复调用：线程 join 之后 joinable() 变为 false，再次 wait() 只是跳过所有 join，属于幂等操作；如果从未调用 start()，线程容器为空，wait() 与析构同样是安全的空操作。start() 则只允许调用一次，第二次调用时 producer_ 仍处于 joinable 状态，对 joinable 的 std::thread 赋值会触发 std::terminate，同时 workers_ 还会被追加一批线程。因此在 start() 开头加了 started_ 检查，第二次调用抛出 std::logic_error，把只能启动一次作为明确的前置条件，而不是留给未定义行为。
 
 
